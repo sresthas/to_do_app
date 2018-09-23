@@ -4,60 +4,73 @@ var tasks = require('./routes/tasks');
 var http = require('http');
 var path = require('path');
 var mongoskin = require('mongoskin');
-var db= mongoskin.db('mongodb://localhost:27017/todo?auto_reconnect', {safe:true});
+var db = mongoskin.db('mongodb://localhost:27017/todo?auto_reconnect', {safe:true});
 var app = express();
-app.use(function(req,res,next){
-	req.db={};
-	req.db.tasks = db.collection('tasks');
-	next();
-}
-	)
-app.locals.appname = 'Express.js Todo App'
-app.set('port', process.env.PORT || 3000);
-app.set('views',C:\Users\Satyam_53\Desktop\Mission Outreachy\hihi\todo-express\views);
-app.set('view engine','jade');
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(express.cookieParser());
-app.use(express.session({secret: '59B93087-78BC-4EB9-993A-A61FC884F6C9'}));
-app.use(express.csrf());
-app.use(require('less-middleware')({
-	src:C:\Users\Satyam_53\Desktop\Mission Outreachy\public,
-	compress: true;
-}));
-app.use(express.static(path.join(C:\Users\Satyam_53\Desktop\Mission Outreachy\public, 'public')));
-app.use(function(req,res,next){
-	res.locals._csrf= req.session._csrf;
-	return next();
+
+var favicon = require('serve-favicon'),
+  logger = require('morgan'),
+  bodyParser = require('body-parser'),
+  methodOverride = require('method-override'),
+  cookieParser = require('cookie-parser'),
+  session = require('express-session'),
+  csrf = require('csurf'),
+  errorHandler = require('errorhandler');
+
+app.use(function(req, res, next) {
+  req.db = {};
+  req.db.tasks = db.collection('tasks');
+  next();
 })
-app.use(app.router);
-if('development' == app.get('env')){
-	app.use(express.errorHandler());
-}
-app.param('task_id', function(req,res,next,taskId)
-req.db.tasks.findById(taskId, function(error,task){
-	if (error) return next (error);
-	if (!task) return next (new Error('Task is not found.'));
-	req.task=task;
-	return next();
+app.locals.appname = 'Express.js Todo App'
+app.locals.moment = require('moment');
+
+app.set('port', process.env.PORT || 3000);
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
+app.use(favicon(path.join('public','favicon.ico')));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(methodOverride());
+app.use(cookieParser('CEAF3FA4-F385-49AA-8FE4-54766A9874F1'));
+app.use(session({
+  secret: '59B93087-78BC-4EB9-993A-A61FC844F6C9',
+  resave: true,
+  saveUninitialized: true
+}));
+app.use(csrf());
+
+app.use(require('less-middleware')(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(function(req, res, next) {
+  res.locals._csrf = req.csrfToken();
+  return next();
+})
+
+app.param('task_id', function(req, res, next, taskId) {
+  req.db.tasks.findById(taskId, function(error, task){
+    if (error) return next(error);
+    if (!task) return next(new Error('Task is not found.'));
+    req.task = task;
+    return next();
+  });
 });
-});
+
 app.get('/', routes.index);
 app.get('/tasks', tasks.list);
 app.post('/tasks', tasks.markAllCompleted)
 app.post('/tasks', tasks.add);
-app.post('/tasks/:task_id',tasks.del);
-app.del('/tasks/:task_id', tasks.del);
+app.post('/tasks/:task_id', tasks.markCompleted);
+app.delete('/tasks/:task_id', tasks.del);
 app.get('/tasks/completed', tasks.completed);
-app.all('*', function(req,res){
-	res.send(404);
-})
-http.createServer(app).listen(app.get('port'),
-function(){
-	console.log('Express server listening on port'
-		+ app.get('port'));
-	}
-	);
 
+app.all('*', function(req, res){
+  res.status(404).send();
+})
+// development only
+if ('development' == app.get('env')) {
+  app.use(errorHandler());
+}
+http.createServer(app).listen(app.get('port'), function(){
+  console.log('Express server listening on port ' + app.get('port'));
+});

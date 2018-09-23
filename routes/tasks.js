@@ -1,12 +1,8 @@
-var express = require('express');
-var router = express.Router();
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
-});
+/*
+ * GET users listing.
+ */
 
-module.exports = router;
 exports.list = function(req, res, next){
   req.db.tasks.find({completed: false}).toArray(function(error, tasks){
     if (error) return next(error);
@@ -21,6 +17,7 @@ exports.add = function(req, res, next){
   if (!req.body || !req.body.name) return next(new Error('No data provided.'));
   req.db.tasks.save({
     name: req.body.name,
+    createTime: new Date(),
     completed: false
   }, function(error, task){
     if (error) return next(error);
@@ -35,6 +32,7 @@ exports.markAllCompleted = function(req, res, next) {
   req.db.tasks.update({
     completed: false
   }, {$set: {
+    completeTime: new Date(),
     completed: true
   }}, {multi: true}, function(error, count){
     if (error) return next(error);
@@ -53,8 +51,9 @@ exports.completed = function(req, res, next) {
 };
 
 exports.markCompleted = function(req, res, next) {
-  if (!req.body.completed) return next(new Error('Param is missing'));
-  req.db.tasks.updateById(req.task._id, {$set: {completed: req.body.completed === 'true'}}, function(error, count) {
+  if (!req.body.completed) return next(new Error('Param is missing.'));
+  var completed = req.body.completed === 'true';
+  req.db.tasks.updateById(req.task._id, {$set: {completeTime: completed ? new Date() : null, completed: completed}}, function(error, count) {
     if (error) return next(error);
     if (count !==1) return next(new Error('Something went wrong.'));
     console.info('Marked task %s with id=%s completed.', req.task.name, req.task._id);
@@ -67,6 +66,6 @@ exports.del = function(req, res, next) {
     if (error) return next(error);
     if (count !==1) return next(new Error('Something went wrong.'));
     console.info('Deleted task %s with id=%s completed.', req.task.name, req.task._id);
-    res.send(200);
+    res.status(204).send();
   });
 };

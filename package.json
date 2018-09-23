@@ -10,6 +10,7 @@
     "debug": "~2.6.9",
     "express": "~4.16.0",
     "http-errors": "~1.6.2",
+    "jQuery": "^1.7.4",
     "jade": "~1.11.0",
     "less-middleware": "^3.0.1",
     "mongoskin": "^2.1.0",
